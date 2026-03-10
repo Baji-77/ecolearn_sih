@@ -1,0 +1,51 @@
+{
+  "students": [
+    {
+      "id": 1,
+      "name": "Navya",
+      "roll": 101
+    },
+    {
+      "id": 2,
+      "name": "Baji",
+      "roll": 102
+    },
+    {
+      "id": 3,
+      "name": "Hemanth",
+      "roll": 103
+    },
+    {
+      "id": 4,
+      "name": "Nuthana",
+      "roll": 104
+    },
+    {
+      "id": 5,
+      "name": "Tejaswi",
+      "roll": 105
+    },
+    {
+      "id": 6,
+      "name": "Jansi",
+      "roll": 106
+    }
+  ],
+  "teachers": [
+    {
+      "id": 1,
+      "email": "teacher1@email.com",
+      "password": "pass123"
+    },
+    {
+      "id": 2,
+      "email": "teacher2@email.com",
+      "password": "pass456"
+    },
+    {
+      "id": 3,
+      "email": "environment1@email.com",
+      "password": "pass789"
+    }
+  ]
+}

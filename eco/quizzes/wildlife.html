@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wildlife Protection Quiz</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0; padding: 0;
+    background: #f4f7f8;
+  }
+  .container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .sidebar {
+    width: 160px;
+    background: #fff;
+    border-right: 1px solid #ccc;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+  .sidebar a {
+    display: block;
+    margin: 6px 0;
+    padding: 8px;
+    text-align: center;
+    text-decoration: none;
+    color: black;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  .sidebar a.unattempted {
+    background-color: #ff4d4d; /* red */
+    color: white;
+  }
+  .sidebar a.marked {
+    background-color: #9933ff; /* violet */
+    color: white;
+  }
+  .sidebar a.current {
+    background-color: #3399ff; /* blue */
+    color: white;
+    font-weight: bold;
+  }
+  .main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: white;
+  }
+  .question {
+    display: none;
+  }
+  .question.active {
+    display: block;
+  }
+  .nav-buttons {
+    margin-top: 15px;
+  }
+  .nav-buttons button {
+    margin-right: 10px;
+    padding: 8px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .nav-buttons button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .mark-review-btn {
+    background-color: #9933ff;
+    border: none;
+    color: white;
+    padding: 7px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background-color 0.3s ease;
+  }
+  .mark-review-btn.marked {
+    background-color: #6610f2;
+  }
+  .submit-btn {
+    margin-top: 25px;
+    padding: 12px 30px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  .submit-btn:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+  .end-btn {
+    margin-top: 15px;
+    padding: 10px 25px;
+    font-size: 15px;
+    cursor: pointer;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  .end-btn:hover {
+    background-color: #c82333;
+  }
+  .result {
+    margin-top: 25px;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  .correct {
+    background-color: #d4edda;
+  }
+  .wrong {
+    background-color: #f8d7da;
+  }
+  label.answer {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 3px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .progress-bar {
+    background: #eee;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 20px;
+    margin-bottom: 15px;
+    display: flex;
+  }
+  .progress-segment {
+    height: 100%;
+    transition: width 0.4s ease;
+  }
+  .progress-attempted {
+    background-color: #28a745;
+  }
+  .progress-marked {
+    background-color: #9933ff;
+  }
+  .progress-unattempted {
+    background-color: #ff4d4d;
+  }
+  .review-container {
+    margin-top: 30px;
+    border-top: 2px solid #333;
+    padding-top: 20px;
+  }
+  .review-question {
+    margin-bottom: 25px;
+  }
+  .review-question p {
+    font-weight: bold;
+  }
+  .review-answer {
+    margin-left: 10px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .your-answer.correct {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  .your-answer.wrong {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+  .correct-answer {
+    background-color: #cce5ff;
+    color: #004085;
+    margin-left: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar" id="questionPanel"></div>
+  <div class="main">
+    <div id="timer" style="font-weight:bold; font-size:18px; margin-bottom:10px;">Time Remaining: 10:00</div>
+    
+    <div class="progress-bar" aria-label="Quiz Progress">
+      <div class="progress-segment progress-attempted" style="width:0%" title="Attempted"></div>
+      <div class="progress-segment progress-marked" style="width:0%" title="Marked for Review"></div>
+      <div class="progress-segment progress-unattempted" style="width:100%" title="Unattempted"></div>
+    </div>
+    
+    <form id="quizForm" onsubmit="return false;"></form>
+
+    <button type="button" class="submit-btn" id="submitBtn" onclick="submitQuiz()" disabled>Submit Quiz</button>
+    <button type="button" class="end-btn" id="endBtn" onclick="submitQuiz()">End Quiz</button>
+
+    <div class="result" id="result"></div>
+
+    <div class="review-container" id="reviewContainer" style="display:none;">
+      <h2>Quiz Review</h2>
+    </div>
+  </div>
+</div>
+
+<script>
+const questionsData = [
+  {
+    id: 'q1',
+    question: "What is the main purpose of wildlife conservation?",
+    choices: [
+      { value: 'a', text: "To increase hunting opportunities" },
+      { value: 'b', text: "To maintain biodiversity and ecosystem balance" },
+      { value: 'c', text: "To build more zoos" },
+      { value: 'd', text: "To reduce forest area" }
+    ],
+    answer: 'b',
+    explanation: "Wildlife conservation helps maintain biodiversity and ecological balance."
+  },
+  {
+    id: 'q2',
+    question: "Which is a major threat to wildlife?",
+    choices: [
+      { value: 'a', text: "Deforestation" },
+      { value: 'b', text: "Pollution" },
+      { value: 'c', text: "Poaching" },
+      { value: 'd', text: "All of the above" }
+    ],
+    answer: 'd',
+    explanation: "Wildlife faces multiple threats such as habitat loss, pollution, and poaching."
+  },
+  {
+    id: 'q3',
+    question: "What does poaching mean?",
+    choices: [
+      { value: 'a', text: "Breeding wild animals" },
+      { value: 'b', text: "Illegal hunting of animals" },
+      { value: 'c', text: "Animal farming" },
+      { value: 'd', text: "Protecting animals" }
+    ],
+    answer: 'b',
+    explanation: "Poaching is the illegal hunting, capturing, or killing of animals."
+  },
+  {
+    id: 'q4',
+    question: "Which international agreement aims to protect endangered species?",
+    choices: [
+      { value: 'a', text: "CITES" },
+      { value: 'b', text: "UNESCO" },
+      { value: 'c', text: "WHO" },
+      { value: 'd', text: "WTO" }
+    ],
+    answer: 'a',
+    explanation: "CITES (Convention on International Trade in Endangered Species) protects endangered animals and plants."
+  },
+  {
+    id: 'q5',
+    question: "What is an endangered species?",
+    choices: [
+      { value: 'a', text: "A species with stable population" },
+      { value: 'b', text: "A species likely to become extinct" },
+      { value: 'c', text: "A species kept in zoos" },
+      { value: 'd', text: "A species that is common" }
+    ],
+    answer: 'b',
+    explanation: "Endangered species are those at risk of extinction."
+  },
+  {
+    id: 'q6',
+    question: "Which of the following helps protect wildlife?",
+    choices: [
+      { value: 'a', text: "Creating national parks" },
+      { value: 'b', text: "Establishing wildlife sanctuaries" },
+      { value: 'c', text: "Banning illegal trade" },
+      { value: 'd', text: "All of the above" }
+    ],
+    answer: 'd',
+    explanation: "All these measures contribute to protecting wildlife."
+  },
+  {
+    id: 'q7',
+    question: "Which Indian law focuses on wildlife protection?",
+    choices: [
+      { value: 'a', text: "Wildlife Protection Act, 1972" },
+      { value: 'b', text: "Forest Conservation Act, 1980" },
+      { value: 'c', text: "Environment Protection Act, 1986" },
+      { value: 'd', text: "None of these" }
+    ],
+    answer: 'a',
+    explanation: "The Wildlife Protection Act, 1972 is India's main law for wildlife conservation."
+  },
+  {
+    id: 'q8',
+    question: "Which species is known as the ‘National Animal of India’?",
+    choices: [
+      { value: 'a', text: "Elephant" },
+      { value: 'b', text: "Lion" },
+      { value: 'c', text: "Tiger" },
+      { value: 'd', text: "Leopard" }
+    ],
+    answer: 'c',
+    explanation: "The Bengal Tiger is the national animal of India."
+  },
+  {
+    id: 'q9',
+    question: "Which practice can help in saving endangered species?",
+    choices: [
+      { value: 'a', text: "Habitat restoration" },
+      { value: 'b', text: "Captive breeding programs" },
+      { value: 'c', text: "Awareness campaigns" },
+      { value: 'd', text: "All of the above" }
+    ],
+    answer: 'd',
+    explanation: "Multiple strategies help protect endangered species."
+  },
+  {
+    id: 'q10',
+    question: "Why is protecting wildlife important?",
+    choices: [
+      { value: 'a', text: "It maintains food chains" },
+      { value: 'b', text: "It supports ecosystems" },
+      { value: 'c', text: "It preserves biodiversity" },
+      { value: 'd', text: "All of the above" }
+    ],
+    answer: 'd',
+    explanation: "Protecting wildlife maintains ecological balance and biodiversity."
+  }
+];
+
+// 🔽 Keep your existing quiz logic unchanged
+let questions = [];
+let currentQuestionIndex = 0;
+let markedForReview = new Set();
+let answers = {};
+let timerDuration = 600;
+let timerInterval;
+
+const questionPanel = document.getElementById('questionPanel');
+const quizForm = document.getElementById('quizForm');
+const submitBtn = document.getElementById('submitBtn');
+const resultDiv = document.getElementById('result');
+const reviewContainer = document.getElementById('reviewContainer');
+const timerDisplay = document.getElementById('timer');
+const progressAttempted = document.querySelector('.progress-attempted');
+const progressMarked = document.querySelector('.progress-marked');
+const progressUnattempted = document.querySelector('.progress-unattempted');
+
+function createQuestionButtons() {
+  questionPanel.innerHTML = '';
+  questions.forEach((q, i) => {
+    const btn = document.createElement('a');
+    btn.textContent = i + 1;
+    btn.href = 'javascript:void(0)';
+    btn.dataset.index = i;
+    btn.classList.add('unattempted');
+    btn.addEventListener('click', () => setCurrentQuestion(i));
+    questionPanel.appendChild(btn);
+  });
+}
+
+function updateQuestionButtons() {
+  questions.forEach((q, i) => {
+    const btn = questionPanel.children[i];
+    btn.classList.remove('unattempted', 'marked', 'current');
+    if (i === currentQuestionIndex) {
+      btn.classList.add('current');
+    } else if (markedForReview.has(q.id)) {
+      btn.classList.add('marked');
+    } else if (answers[q.id]) {
+      btn.classList.add('attempted');
+    } else {
+      btn.classList.add('unattempted');
+    }
+  });
+}
+
+function createQuestions() {
+  quizForm.innerHTML = '';
+  questions.forEach((q, i) => {
+    const questionDiv = document.createElement('div');
+    questionDiv.classList.add('question');
+    questionDiv.id = q.id;
+
+    const questionText = document.createElement('p');
+    questionText.textContent = `Q${i + 1}. ${q.question}`;
+    questionDiv.appendChild(questionText);
+
+    q.choices.forEach(choice => {
+      const label = document.createElement('label');
+      label.classList.add('answer');
+      label.htmlFor = `${q.id}_${choice.value}`;
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = q.id;
+      input.id = `${q.id}_${choice.value}`;
+      input.value = choice.value;
+      input.addEventListener('change', () => {
+        answers[q.id] = choice.value;
+        if (markedForReview.has(q.id)) markedForReview.delete(q.id);
+        updateProgressBar();
+        checkSubmitEnabled();
+        updateQuestionButtons();
+      });
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(choice.text));
+      questionDiv.appendChild(label);
+    });
+
+    const markBtn = document.createElement('button');
+    markBtn.type = 'button';
+    markBtn.textContent = 'Mark for Review';
+    markBtn.classList.add('mark-review-btn');
+    markBtn.addEventListener('click', () => {
+      toggleMarkForReview(q.id);
+      updateMarkButton();
+      updateQuestionButtons();
+      updateProgressBar();
+    });
+    questionDiv.appendChild(markBtn);
+
+    const navDiv = document.createElement('div');
+    navDiv.classList.add('nav-buttons');
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.textContent = 'Previous';
+    prevBtn.disabled = i === 0;
+    prevBtn.addEventListener('click', () => {
+      if (currentQuestionIndex > 0) setCurrentQuestion(currentQuestionIndex - 1);
+    });
+    navDiv.appendChild(prevBtn);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.textContent = 'Next';
+    nextBtn.disabled = i === questions.length - 1;
+    nextBtn.addEventListener('click', () => {
+      if (currentQuestionIndex < questions.length - 1) setCurrentQuestion(currentQuestionIndex + 1);
+    });
+    navDiv.appendChild(nextBtn);
+
+    questionDiv.appendChild(navDiv);
+    quizForm.appendChild(questionDiv);
+  });
+}
+
+function setCurrentQuestion(index) {
+  questions.forEach((_, i) => {
+    document.getElementById(questions[i].id).classList.remove('active');
+  });
+  document.getElementById(questions[index].id).classList.add('active');
+  currentQuestionIndex = index;
+  updateQuestionButtons();
+  updateMarkButton();
+}
+
+function toggleMarkForReview(questionId) {
+  if (markedForReview.has(questionId)) markedForReview.delete(questionId);
+  else markedForReview.add(questionId);
+}
+
+function updateMarkButton() {
+  const currentQId = questions[currentQuestionIndex].id;
+  const qDiv = document.getElementById(currentQId);
+  const markBtn = qDiv.querySelector('.mark-review-btn');
+  if (markedForReview.has(currentQId)) {
+    markBtn.textContent = 'Unmark Review';
+    markBtn.classList.add('marked');
+  } else {
+    markBtn.textContent = 'Mark for Review';
+    markBtn.classList.remove('marked');
+  }
+}
+
+function checkSubmitEnabled() {
+  const allAnswered = questions.every(q => answers[q.id]);
+  submitBtn.disabled = !allAnswered;
+}
+
+function submitQuiz() {
+  clearInterval(timerInterval);
+  submitBtn.disabled = true;
+  const total = questions.length;
+  let correctCount = 0;
+
+  quizForm.querySelectorAll('input[type=radio]').forEach(input => input.disabled = true);
+  quizForm.querySelectorAll('button').forEach(btn => btn.disabled = true);
+
+  questions.forEach(q => {
+    const selected = answers[q.id];
+    document.getElementById(q.id).querySelectorAll('input[type=radio]').forEach(input => {
+      const label = input.parentElement;
+      label.classList.remove('correct', 'wrong');
+      if (input.value === q.answer) label.classList.add('correct');
+      if (selected === input.value && selected !== q.answer) label.classList.add('wrong');
+    });
+    if (selected === q.answer) correctCount++;
+  });
+
+  resultDiv.textContent = `Your score: ${correctCount} / ${total}`;
+  showReview(correctCount, total);
+}
+
+function showReview(score, total) {
+  reviewContainer.style.display = 'block';
+  reviewContainer.innerHTML = `<h2>Quiz Review</h2><p>Your Score: ${score} / ${total}</p>`;
+  questions.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.classList.add('review-question');
+    const qText = document.createElement('p');
+    qText.textContent = `Q${i + 1}. ${q.question}`;
+    div.appendChild(qText);
+
+    const yourAnswer = document.createElement('div');
+    yourAnswer.classList.add('review-answer', 'your-answer');
+    if (answers[q.id] === q.answer) {
+      yourAnswer.classList.add('correct');
+      yourAnswer.textContent = `Your answer: ${getChoiceText(q, answers[q.id])} (Correct)`;
+    } else if (answers[q.id]) {
+      yourAnswer.classList.add('wrong');
+      yourAnswer.textContent = `Your answer: ${getChoiceText(q, answers[q.id])} (Wrong)`;
+    } else {
+      yourAnswer.textContent = `You did not answer this question.`;
+    }
+    div.appendChild(yourAnswer);
+
+    const correctAnswer = document.createElement('div');
+    correctAnswer.classList.add('review-answer', 'correct-answer');
+    correctAnswer.textContent = `Correct answer: ${getChoiceText(q, q.answer)}`;
+    div.appendChild(correctAnswer);
+
+    const explanation = document.createElement('p');
+    explanation.style.fontStyle = 'italic';
+    explanation.textContent = `Explanation: ${q.explanation}`;
+    div.appendChild(explanation);
+
+    reviewContainer.appendChild(div);
+  });
+}
+
+function getChoiceText(question, value) {
+  const choice = question.choices.find(c => c.value === value);
+  return choice ? choice.text : '';
+}
+
+function updateProgressBar() {
+  const total = questions.length;
+  const attempted = questions.filter(q => answers[q.id]).length;
+  const marked = markedForReview.size;
+  const widthAttempted = (attempted / total) * 100;
+  const widthMarked = (marked / total) * 100;
+  const widthUnattempted = 100 - widthAttempted - widthMarked;
+  progressAttempted.style.width = widthAttempted + '%';
+  progressMarked.style.width = widthMarked + '%';
+  progressUnattempted.style.width = widthUnattempted + '%';
+}
+
+function startTimer() {
+  let timeLeft = timerDuration;
+  timerDisplay.textContent = formatTime(timeLeft);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timerDisplay.textContent = formatTime(timeLeft);
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      alert("Time is up! The quiz will be submitted automatically.");
+      submitQuiz();
+    }
+  }, 1000);
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `Time Remaining: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function init() {
+  questions = questionsData;
+  createQuestionButtons();
+  createQuestions();
+  setCurrentQuestion(0);
+  updateProgressBar();
+  checkSubmitEnabled();
+  startTimer();
+}
+
+init();
+</script>
+</body>
+</html>

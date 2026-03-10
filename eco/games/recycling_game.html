@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>♻️ 3Rs Drag & Drop Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #e6f7f1;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #2b7a0b;
+    }
+
+    .bins, .items {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 20px;
+      gap: 20px;
+    }
+
+    .bin {
+      width: 160px;
+      height: 200px;
+      border: 3px dashed #333;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      position: relative;
+      padding: 5px;
+    }
+
+    .bin img {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+    }
+
+    .item {
+      width: 130px;
+      height: 130px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fffae6;
+      border: 2px solid #666;
+      cursor: grab;
+      font-weight: bold;
+      padding: 5px;
+    }
+
+    .item img {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+      margin-bottom: 5px;
+    }
+
+    .correct {
+      border: 3px solid green;
+    }
+
+    .wrong {
+      border: 3px solid red;
+    }
+
+    #score {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 20px;
+      position: relative;
+    }
+
+    /* Points pop animation */
+    .points-pop {
+      position: absolute;
+      color: green;
+      font-size: 22px;
+      font-weight: bold;
+      animation: popUp 1s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes popUp {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-40px); }
+    }
+
+    /* Restart button */
+    #restartBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      font-weight: bold;
+      background: #2b7a0b;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #restartBtn:hover {
+      background: #23910c;
+    }
+  </style>
+</head>
+<body>
+  <h1>♻️ 3Rs Drag & Drop Game</h1>
+  <p>Drag the items into the correct 3R category!</p>
+
+  <!-- Items to drag -->
+  <div class="items">
+    <!-- Reduce -->
+    <div class="item" draggable="true" id="plasticbag" data-bin="reduce">
+      <img src="https://th.bing.com/th/id/OIP.7UG87slzQXtPVPMIfB3rAQHaJl?w=136&h=180&c=7&r=0&o=5&dpr=1.3&pid=1.7" alt="Plastic Bag">
+      Plastic Bag
+    </div>
+    <div class="item" draggable="true" id="straw" data-bin="reduce">
+      <img src="https://tse4.mm.bing.net/th/id/OIP.tPFnNB8d-_36ii38z24r0QHaE8?rs=1&pid=ImgDetMain&o=7&rm=3" alt="Plastic Straw">
+      Plastic Straw
+    </div>
+
+    <!-- Reuse -->
+    <div class="item" draggable="true" id="bottle" data-bin="reuse">
+      <img src="https://th.bing.com/th/id/OIP.uXkSbU09g9_BqknUzO3KYQHaHa?w=186&h=186&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3" alt="Bottle">
+      Refillable Bottle
+    </div>
+    <div class="item" draggable="true" id="bag" data-bin="reuse">
+      <img src="https://4.imimg.com/data4/RR/DO/MY-3055825/cotton-cloth-bags.jpg" alt="Cloth Bag">
+      Cloth Bag
+    </div>
+
+    <!-- Recycle -->
+    <div class="item" draggable="true" id="newspaper" data-bin="recycle">
+      <img src="https://cdn-icons-png.flaticon.com/512/2965/2965879.png" alt="Newspaper">
+      Newspaper
+    </div>
+    <div class="item" draggable="true" id="can" data-bin="recycle">
+      <img src="https://th.bing.com/th/id/OIP.uU2IyDDgH8M1XkgtIxyLDgHaLE?w=120&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3" alt="Tin Can">
+      Tin Can
+    </div>
+    <div class="item" draggable="true" id="glass" data-bin="recycle">
+      <img src="https://tse2.mm.bing.net/th/id/OIP.Z2mFQHeiqJDsm19XbfgpMAHaK3?rs=1&pid=ImgDetMain&o=7&rm=3" alt="Glass Bottle">
+      Glass Bottle
+    </div>
+  </div>
+
+  <!-- Bins (without text labels) -->
+  <div class="bins">
+    <div class="bin" data-bin="reduce">
+      <img src="images/reduce.png" alt="Reduce Bin">
+    </div>
+    <div class="bin" data-bin="reuse">
+      <img src="images/reuse.png" alt="Reuse Bin">
+    </div>
+    <div class="bin" data-bin="recycle">
+      <img src="images/recycle.png" alt="Recycle Bin">
+    </div>
+  </div>
+
+  <div id="score">Score: 0</div>
+  <button id="restartBtn">🔄 Restart Game</button>
+
+  <script>
+    let score = 0;
+
+    // drag start
+    document.querySelectorAll('.item').forEach(item => {
+      item.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', item.id);
+      });
+    });
+
+    // allow drop
+    document.querySelectorAll('.bin').forEach(bin => {
+      bin.addEventListener('dragover', e => {
+        e.preventDefault();
+      });
+
+      bin.addEventListener('drop', e => {
+        e.preventDefault();
+        const itemId = e.dataTransfer.getData('text/plain');
+        const item = document.getElementById(itemId);
+
+        if (item && item.dataset.bin === bin.dataset.bin) {
+          bin.classList.add('correct');
+          setTimeout(() => bin.classList.remove('correct'), 500);
+          item.remove(); // remove item after correct drop
+          score += 100;
+
+          // create points pop near bin
+          const pop = document.createElement("div");
+          pop.innerText = "+100";
+          pop.classList.add("points-pop");
+          bin.appendChild(pop);
+
+          // remove after animation
+          setTimeout(() => pop.remove(), 1000);
+
+        } else if (item) {
+          bin.classList.add('wrong');
+          setTimeout(() => bin.classList.remove('wrong'), 500);
+        }
+
+        document.getElementById('score').innerText = "Score: " + score;
+      });
+    });
+
+    // restart game
+    document.getElementById("restartBtn").addEventListener("click", () => {
+      location.reload();
+    });
+  </script>
+</body>
+</html>

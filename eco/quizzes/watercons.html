@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Water Conservation Techniques Quiz</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0; padding: 0;
+    background: #f4f7f8;
+  }
+  .container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .sidebar {
+    width: 160px;
+    background: #fff;
+    border-right: 1px solid #ccc;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+  .sidebar a {
+    display: block;
+    margin: 6px 0;
+    padding: 8px;
+    text-align: center;
+    text-decoration: none;
+    color: black;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  .sidebar a.unattempted { background-color: #ff4d4d; color: white; }
+  .sidebar a.marked { background-color: #9933ff; color: white; }
+  .sidebar a.current { background-color: #3399ff; color: white; font-weight: bold; }
+  .main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: white;
+  }
+  .question { display: none; }
+  .question.active { display: block; }
+  .nav-buttons { margin-top: 15px; }
+  .nav-buttons button { margin-right: 10px; padding: 8px 14px; font-size: 14px; cursor: pointer; }
+  .nav-buttons button:disabled { cursor: not-allowed; opacity: 0.5; }
+  .mark-review-btn {
+    background-color: #9933ff; border: none; color: white; padding: 7px 15px; border-radius: 4px; cursor: pointer; margin-top: 15px; transition: background-color 0.3s ease;
+  }
+  .mark-review-btn.marked { background-color: #6610f2; }
+  .submit-btn {
+    margin-top: 25px; padding: 12px 30px; font-size: 16px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 5px; transition: background-color 0.3s ease;
+  }
+  .submit-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+  .end-btn {
+    margin-top: 15px; padding: 10px 25px; font-size: 15px; cursor: pointer; background-color: #dc3545; color: white; border: none; border-radius: 5px; transition: background-color 0.3s ease;
+  }
+  .end-btn:hover { background-color: #c82333; }
+  .result { margin-top: 25px; font-size: 20px; font-weight: bold; }
+  .correct { background-color: #d4edda; }
+  .wrong { background-color: #f8d7da; }
+  label.answer { display: block; padding: 6px 10px; border-radius: 3px; margin-bottom: 5px; cursor: pointer; user-select: none; }
+  .progress-bar { background: #eee; border-radius: 20px; overflow: hidden; height: 20px; margin-bottom: 15px; display: flex; }
+  .progress-segment { height: 100%; transition: width 0.4s ease; }
+  .progress-attempted { background-color: #28a745; }
+  .progress-marked { background-color: #9933ff; }
+  .progress-unattempted { background-color: #ff4d4d; }
+  .review-container { margin-top: 30px; border-top: 2px solid #333; padding-top: 20px; }
+  .review-question { margin-bottom: 25px; }
+  .review-question p { font-weight: bold; }
+  .review-answer { margin-left: 10px; padding: 6px 12px; border-radius: 4px; display: inline-block; }
+  .your-answer.correct { background-color: #d4edda; color: #155724; }
+  .your-answer.wrong { background-color: #f8d7da; color: #721c24; }
+  .correct-answer { background-color: #cce5ff; color: #004085; margin-left: 10px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar" id="questionPanel"></div>
+  <div class="main">
+    <div id="timer" style="font-weight:bold; font-size:18px; margin-bottom:10px;">Time Remaining: 10:00</div>
+    <div class="progress-bar" aria-label="Quiz Progress">
+      <div class="progress-segment progress-attempted" style="width:0%" title="Attempted"></div>
+      <div class="progress-segment progress-marked" style="width:0%" title="Marked for Review"></div>
+      <div class="progress-segment progress-unattempted" style="width:100%" title="Unattempted"></div>
+    </div>
+    <form id="quizForm" onsubmit="return false;"></form>
+    <button type="button" class="submit-btn" id="submitBtn" onclick="submitQuiz()" disabled>Submit Quiz</button>
+    <button type="button" class="end-btn" id="endBtn" onclick="submitQuiz()">End Quiz</button>
+    <div class="result" id="result"></div>
+    <div class="review-container" id="reviewContainer" style="display:none;">
+      <h2>Quiz Review</h2>
+    </div>
+  </div>
+</div>
+
+<script>
+const questionsData = [
+  {
+    id: 'q1',
+    question: "Which of the following is a water-saving irrigation method?",
+    choices: [
+      { value: 'a', text: "Flood irrigation" },
+      { value: 'b', text: "Drip irrigation" },
+      { value: 'c', text: "Overhead sprinklers" },
+      { value: 'd', text: "Open channels" }
+    ],
+    answer: 'b',
+    explanation: "Drip irrigation delivers water directly to plant roots and minimizes wastage."
+  },
+  {
+    id: 'q2',
+    question: "What is rainwater harvesting?",
+    choices: [
+      { value: 'a', text: "Collecting and storing rainwater for use" },
+      { value: 'b', text: "Using rainwater to flood fields" },
+      { value: 'c', text: "Diverting rainwater to rivers only" },
+      { value: 'd', text: "Evaporating rainwater immediately" }
+    ],
+    answer: 'a',
+    explanation: "Rainwater harvesting captures rainwater for domestic or agricultural use."
+  },
+  {
+    id: 'q3',
+    question: "Which of these reduces water wastage at home?",
+    choices: [
+      { value: 'a', text: "Fixing leaking taps" },
+      { value: 'b', text: "Leaving taps open" },
+      { value: 'c', text: "Using garden hoses unnecessarily" },
+      { value: 'd', text: "Washing cars daily with running water" }
+    ],
+    answer: 'a',
+    explanation: "Repairing leaks prevents unnecessary water loss."
+  },
+  {
+    id: 'q4',
+    question: "Greywater can be reused for:",
+    choices: [
+      { value: 'a', text: "Drinking" },
+      { value: 'b', text: "Irrigation" },
+      { value: 'c', text: "Cooking" },
+      { value: 'd', text: "Bathing directly" }
+    ],
+    answer: 'b',
+    explanation: "Greywater from sinks and showers can be safely used for watering plants."
+  },
+  {
+    id: 'q5',
+    question: "Mulching in gardens helps in:",
+    choices: [
+      { value: 'a', text: "Reducing water evaporation from soil" },
+      { value: 'b', text: "Increasing soil erosion" },
+      { value: 'c', text: "Wasting water" },
+      { value: 'd', text: "Increasing soil temperature only" }
+    ],
+    answer: 'a',
+    explanation: "Mulch retains soil moisture and reduces evaporation."
+  },
+  {
+    id: 'q6',
+    question: "Which of these is an efficient way to use water in agriculture?",
+    choices: [
+      { value: 'a', text: "Sprinkler irrigation at night" },
+      { value: 'b', text: "Flooding entire fields" },
+      { value: 'c', text: "Drip irrigation" },
+      { value: 'd', text: "Manual watering with bucket" }
+    ],
+    answer: 'c',
+    explanation: "Drip irrigation targets water directly to crops and reduces wastage."
+  },
+  {
+    id: 'q7',
+    question: "Why is water conservation important?",
+    choices: [
+      { value: 'a', text: "Prevents droughts and ensures supply" },
+      { value: 'b', text: "Increases water bills" },
+      { value: 'c', text: "Promotes water wastage" },
+      { value: 'd', text: "Reduces rainfall" }
+    ],
+    answer: 'a',
+    explanation: "Conserving water ensures availability for future needs and prevents scarcity."
+  },
+  {
+    id: 'q8',
+    question: "Which household device saves water effectively?",
+    choices: [
+      { value: 'a', text: "Low-flow showerheads" },
+      { value: 'b', text: "Leaky taps" },
+      { value: 'c', text: "Old toilets" },
+      { value: 'd', text: "Open hose watering" }
+    ],
+    answer: 'a',
+    explanation: "Low-flow devices reduce water consumption without affecting utility."
+  },
+  {
+    id: 'q9',
+    question: "Contour farming helps conserve water by:",
+    choices: [
+      { value: 'a', text: "Increasing runoff" },
+      { value: 'b', text: "Slowing water flow and reducing soil erosion" },
+      { value: 'c', text: "Wasting water" },
+      { value: 'd', text: "Drying the soil" }
+    ],
+    answer: 'b',
+    explanation: "Farming along natural contours slows water runoff and retains soil moisture."
+  },
+  {
+    id: 'q10',
+    question: "Which activity reduces water wastage in cities?",
+    choices: [
+      { value: 'a', text: "Repairing leaks in pipelines" },
+      { value: 'b', text: "Letting water run in drains" },
+      { value: 'c', text: "Flooding streets" },
+      { value: 'd', text: "Overwatering public gardens" }
+    ],
+    answer: 'a',
+    explanation: "Fixing leaks in urban water systems prevents large-scale wastage."
+  }
+];
+
+let questions = [];
+let currentQuestionIndex = 0;
+let markedForReview = new Set();
+let answers = {};
+let timerDuration = 600;
+let timerInterval;
+
+const questionPanel = document.getElementById('questionPanel');
+const quizForm = document.getElementById('quizForm');
+const submitBtn = document.getElementById('submitBtn');
+const resultDiv = document.getElementById('result');
+const reviewContainer = document.getElementById('reviewContainer');
+const timerDisplay = document.getElementById('timer');
+const progressAttempted = document.querySelector('.progress-attempted');
+const progressMarked = document.querySelector('.progress-marked');
+const progressUnattempted = document.querySelector('.progress-unattempted');
+
+function createQuestionButtons() {
+  questionPanel.innerHTML = '';
+  questions.forEach((q, i) => {
+    const a = document.createElement('a');
+    a.textContent = i + 1;
+    a.className = 'unattempted';
+    a.onclick = () => setCurrentQuestion(i);
+    a.id = 'btn-' + q.id;
+    questionPanel.appendChild(a);
+  });
+}
+function updateQuestionButtons() {
+  questions.forEach((q, i) => {
+    const btn = document.getElementById('btn-' + q.id);
+    if (i === currentQuestionIndex) {
+      btn.className = 'current';
+    } else if (markedForReview.has(q.id)) {
+      btn.className = 'marked';
+    } else if (answers[q.id]) {
+      btn.className = 'attempted';
+    } else {
+      btn.className = 'unattempted';
+    }
+  });
+}
+function createQuestions() {
+  quizForm.innerHTML = '';
+  questions.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.id = q.id;
+    const h3 = document.createElement('h3');
+    h3.textContent = 'Q' + (i + 1) + '. ' + q.question;
+    div.appendChild(h3);
+    q.choices.forEach(c => {
+      const label = document.createElement('label');
+      label.className = 'answer';
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = q.id;
+      input.value = c.value;
+      input.onchange = () => {
+        answers[q.id] = c.value;
+        updateQuestionButtons();
+        updateProgressBar();
+        checkSubmitEnabled();
+      };
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + c.text));
+      div.appendChild(label);
+    });
+    const navDiv = document.createElement('div');
+    navDiv.className = 'nav-buttons';
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.textContent = 'Previous';
+    prevBtn.onclick = () => setCurrentQuestion(i - 1);
+    navDiv.appendChild(prevBtn);
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.textContent = 'Next';
+    nextBtn.onclick = () => setCurrentQuestion(i + 1);
+    navDiv.appendChild(nextBtn);
+    div.appendChild(navDiv);
+    const markBtn = document.createElement('button');
+    markBtn.type = 'button';
+    markBtn.className = 'mark-review-btn';
+    markBtn.textContent = 'Mark for Review';
+    markBtn.onclick = () => toggleMarkForReview(q.id, markBtn);
+    div.appendChild(markBtn);
+    quizForm.appendChild(div);
+  });
+}
+function setCurrentQuestion(index) {
+  if (index < 0 || index >= questions.length) return;
+  document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+  currentQuestionIndex = index;
+  const q = questions[index];
+  document.getElementById(q.id).classList.add('active');
+  updateQuestionButtons();
+  updateMarkButton(q.id);
+  restorePreviousSelections();
+}
+function toggleMarkForReview(qid, btn) {
+  if (markedForReview.has(qid)) {
+    markedForReview.delete(qid);
+  } else {
+    markedForReview.add(qid);
+  }
+  updateQuestionButtons();
+  updateMarkButton(qid);
+  updateProgressBar();
+}
+function updateMarkButton(qid) {
+  const qDiv = document.getElementById(qid);
+  if (!qDiv) return;
+  const btn = qDiv.querySelector('.mark-review-btn');
+  if (markedForReview.has(qid)) {
+    btn.textContent = 'Unmark Review';
+    btn.classList.add('marked');
+  } else {
+    btn.textContent = 'Mark for Review';
+    btn.classList.remove('marked');
+  }
+}
+function checkSubmitEnabled() {
+  submitBtn.disabled = Object.keys(answers).length < questions.length;
+}
+function submitQuiz() {
+  clearInterval(timerInterval);
+  let score = 0;
+  questions.forEach(q => {
+    if (answers[q.id] === q.answer) score++;
+  });
+  resultDiv.textContent = `You scored ${score} out of ${questions.length}`;
+  showReview();
+}
+function showReview() {
+  reviewContainer.style.display = 'block';
+  reviewContainer.innerHTML = '<h2>Quiz Review</h2>';
+  questions.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'review-question';
+    div.innerHTML = `<p>Q${i+1}. ${q.question}</p>`;
+    const yourAnswer = answers[q.id];
+    const correct = q.answer;
+    const yourSpan = document.createElement('span');
+    yourSpan.className = 'review-answer your-answer';
+    if (yourAnswer === correct) {
+      yourSpan.classList.add('correct');
+      yourSpan.textContent = 'Your Answer: ' + getChoiceText(q, yourAnswer);
+    } else {
+      yourSpan.classList.add('wrong');
+      yourSpan.textContent = 'Your Answer: ' + (yourAnswer ? getChoiceText(q, yourAnswer) : 'No answer');
+    }
+    div.appendChild(yourSpan);
+    if (yourAnswer !== correct) {
+      const correctSpan = document.createElement('span');
+      correctSpan.className = 'review-answer correct-answer';
+      correctSpan.textContent = 'Correct Answer: ' + getChoiceText(q, correct);
+      div.appendChild(correctSpan);
+    }
+    const exp = document.createElement('div');
+    exp.textContent = "Explanation: " + q.explanation;
+    exp.style.marginTop = '8px';
+    div.appendChild(exp);
+    reviewContainer.appendChild(div);
+  });
+}
+function getChoiceText(q, val) {
+  const choice = q.choices.find(c => c.value === val);
+  return choice ? choice.text : '';
+}
+function updateProgressBar() {
+  const attempted = Object.keys(answers).length;
+  const marked = markedForReview.size;
+  const unattempted = questions.length - attempted;
+  const total = questions.length;
+  progressAttempted.style.width = (attempted/total*100) + '%';
+  progressMarked.style.width = (marked/total*100) + '%';
+  progressUnattempted.style.width = (unattempted/total*100) + '%';
+}
+function startTimer() {
+  timerInterval = setInterval(() => {
+    timerDuration--;
+    if (timerDuration <= 0) {
+      clearInterval(timerInterval);
+      submitQuiz();
+    }
+    timerDisplay.textContent = "Time Remaining: " + formatTime(timerDuration);
+  }, 1000);
+}
+function formatTime(seconds) {
+  const m = Math.floor(seconds/60);
+  const s = seconds % 60;
+  return m + ":" + (s < 10 ? "0"+s : s);
+}
+function restorePreviousSelections() {
+  const q = questions[currentQuestionIndex];
+  const selected = answers[q.id];
+  if (selected) {
+    document.querySelectorAll(`#${q.id} input[type=radio]`).forEach(inp => {
+      inp.checked = inp.value === selected;
+    });
+  }
+}
+function init() {
+  questions = questionsData;
+  createQuestionButtons();
+  createQuestions();
+  setCurrentQuestion(0);
+  updateProgressBar();
+  checkSubmitEnabled();
+  startTimer();
+}
+init();
+</script>
+</body>
+</html>

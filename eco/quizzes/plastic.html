@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clean Surroundings Quiz</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0; padding: 0;
+    background: #f4f7f8;
+  }
+  .container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .sidebar {
+    width: 160px;
+    background: #fff;
+    border-right: 1px solid #ccc;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+  .sidebar a {
+    display: block;
+    margin: 6px 0;
+    padding: 8px;
+    text-align: center;
+    text-decoration: none;
+    color: black;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  .sidebar a.unattempted {
+    background-color: #ff4d4d; /* red */
+    color: white;
+  }
+  .sidebar a.marked {
+    background-color: #9933ff; /* violet */
+    color: white;
+  }
+  .sidebar a.current {
+    background-color: #3399ff; /* blue */
+    color: white;
+    font-weight: bold;
+  }
+  .main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: white;
+  }
+  .question {
+    display: none;
+  }
+  .question.active {
+    display: block;
+  }
+  .nav-buttons {
+    margin-top: 15px;
+  }
+  .nav-buttons button {
+    margin-right: 10px;
+    padding: 8px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .nav-buttons button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .mark-review-btn {
+    background-color: #9933ff;
+    border: none;
+    color: white;
+    padding: 7px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background-color 0.3s ease;
+  }
+  .mark-review-btn.marked {
+    background-color: #6610f2;
+  }
+  .submit-btn {
+    margin-top: 25px;
+    padding: 12px 30px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  .submit-btn:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+  .end-btn {
+    margin-top: 15px;
+    padding: 10px 25px;
+    font-size: 15px;
+    cursor: pointer;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  .end-btn:hover {
+    background-color: #c82333;
+  }
+  .result {
+    margin-top: 25px;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  .correct {
+    background-color: #d4edda;
+  }
+  .wrong {
+    background-color: #f8d7da;
+  }
+  label.answer {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 3px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .progress-bar {
+    background: #eee;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 20px;
+    margin-bottom: 15px;
+    display: flex;
+  }
+  .progress-segment {
+    height: 100%;
+    transition: width 0.4s ease;
+  }
+  .progress-attempted { background-color: #28a745; }
+  .progress-marked { background-color: #9933ff; }
+  .progress-unattempted { background-color: #ff4d4d; }
+  .review-container {
+    margin-top: 30px;
+    border-top: 2px solid #333;
+    padding-top: 20px;
+  }
+  .review-question { margin-bottom: 25px; }
+  .review-question p { font-weight: bold; }
+  .review-answer {
+    margin-left: 10px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .your-answer.correct {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  .your-answer.wrong {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+  .correct-answer {
+    background-color: #cce5ff;
+    color: #004085;
+    margin-left: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar" id="questionPanel"></div>
+  <div class="main">
+    <div id="timer" style="font-weight:bold; font-size:18px; margin-bottom:10px;">Time Remaining: 10:00</div>
+
+    <div class="progress-bar" aria-label="Quiz Progress">
+      <div class="progress-segment progress-attempted" style="width:0%" title="Attempted"></div>
+      <div class="progress-segment progress-marked" style="width:0%" title="Marked for Review"></div>
+      <div class="progress-segment progress-unattempted" style="width:100%" title="Unattempted"></div>
+    </div>
+
+    <form id="quizForm" onsubmit="return false;"></form>
+
+    <button type="button" class="submit-btn" id="submitBtn" onclick="submitQuiz()" disabled>Submit Quiz</button>
+    <button type="button" class="end-btn" id="endBtn" onclick="submitQuiz()">End Quiz</button>
+
+    <div class="result" id="result"></div>
+    <div class="review-container" id="reviewContainer" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+const questionsData = [
+  {
+    id: 'q1',
+    question: "Which of the following is the best way to dispose of kitchen food waste?",
+    choices: [
+      { value: 'a', text: "Burn it in the backyard" },
+      { value: 'b', text: "Throw it into a river" },
+      { value: 'c', text: "Compost it" },
+      { value: 'd', text: "Mix with plastic waste" }
+    ],
+    answer: 'c',
+    explanation: "Food waste should be composted to create natural fertilizer instead of polluting the environment."
+  },
+  {
+    id: 'q2',
+    question: "What type of waste should be placed in a blue recycling bin?",
+    choices: [
+      { value: 'a', text: "Plastic bottles and paper" },
+      { value: 'b', text: "Vegetable peels" },
+      { value: 'c', text: "Medical syringes" },
+      { value: 'd', text: "Leftover food" }
+    ],
+    answer: 'a',
+    explanation: "Blue bins are generally used for dry recyclable waste like paper, plastic, and cardboard."
+  },
+  {
+    id: 'q3',
+    question: "What does 'segregation of waste' mean?",
+    choices: [
+      { value: 'a', text: "Throwing all waste together" },
+      { value: 'b', text: "Separating waste into categories like wet, dry, and hazardous" },
+      { value: 'c', text: "Dumping waste far from home" },
+      { value: 'd', text: "Burying waste in the ground" }
+    ],
+    answer: 'b',
+    explanation: "Segregation means separating waste into categories for safe disposal and recycling."
+  },
+  {
+    id: 'q4',
+    question: "Which of these is hazardous waste?",
+    choices: [
+      { value: 'a', text: "Fruit peels" },
+      { value: 'b', text: "Newspaper" },
+      { value: 'c', text: "Used batteries" },
+      { value: 'd', text: "Plastic bottles" }
+    ],
+    answer: 'c',
+    explanation: "Batteries contain toxic chemicals and should be disposed of as hazardous waste."
+  },
+  {
+    id: 'q5',
+    question: "Why is it important to reduce the use of plastic bags?",
+    choices: [
+      { value: 'a', text: "They are stylish" },
+      { value: 'b', text: "They are reusable" },
+      { value: 'c', text: "They cause pollution and harm wildlife" },
+      { value: 'd', text: "They make waste segregation easier" }
+    ],
+    answer: 'c',
+    explanation: "Plastic bags harm the environment and animals when not disposed of properly."
+  },
+  {
+    id: 'q6',
+    question: "Which practice helps maintain clean surroundings?",
+    choices: [
+      { value: 'a', text: "Throwing waste on the street" },
+      { value: 'b', text: "Using dustbins and recycling waste" },
+      { value: 'c', text: "Burning plastics in open air" },
+      { value: 'd', text: "Dumping waste into drains" }
+    ],
+    answer: 'b',
+    explanation: "Using bins and recycling ensures cleanliness and prevents pollution."
+  },
+  {
+    id: 'q7',
+    question: "What is e-waste?",
+    choices: [
+      { value: 'a', text: "Waste from electronic devices" },
+      { value: 'b', text: "Waste from eating food" },
+      { value: 'c', text: "Wet waste from homes" },
+      { value: 'd', text: "Recyclable paper waste" }
+    ],
+    answer: 'a',
+    explanation: "E-waste is discarded electronic items like computers, phones, and TVs."
+  },
+  {
+    id: 'q8',
+    question: "Which bin is usually used for biodegradable waste?",
+    choices: [
+      { value: 'a', text: "Green bin" },
+      { value: 'b', text: "Blue bin" },
+      { value: 'c', text: "Red bin" },
+      { value: 'd', text: "Black bin" }
+    ],
+    answer: 'a',
+    explanation: "Green bins are for biodegradable and compostable waste."
+  },
+  {
+    id: 'q9',
+    question: "Which is the best alternative to single-use plastic bottles?",
+    choices: [
+      { value: 'a', text: "Glass or steel bottles" },
+      { value: 'b', text: "Plastic bags" },
+      { value: 'c', text: "Paper cups" },
+      { value: 'd', text: "Disposable plastic bottles" }
+    ],
+    answer: 'a',
+    explanation: "Reusable glass or steel bottles help reduce plastic waste."
+  },
+  {
+    id: 'q10',
+    question: "How can communities keep their surroundings clean?",
+    choices: [
+      { value: 'a', text: "Organizing clean-up drives" },
+      { value: 'b', text: "Segregating waste at source" },
+      { value: 'c', text: "Spreading awareness about proper disposal" },
+      { value: 'd', text: "All of the above" }
+    ],
+    answer: 'd',
+    explanation: "All these actions together help maintain a clean and healthy environment."
+  }
+];
+
+// ========== Same JS logic as before ==========
+let questions = [];
+let currentQuestionIndex = 0;
+let markedForReview = new Set();
+let answers = {};
+let timerDuration = 600;
+let timerInterval;
+
+const questionPanel = document.getElementById('questionPanel');
+const quizForm = document.getElementById('quizForm');
+const submitBtn = document.getElementById('submitBtn');
+const resultDiv = document.getElementById('result');
+const reviewContainer = document.getElementById('reviewContainer');
+const timerDisplay = document.getElementById('timer');
+const progressAttempted = document.querySelector('.progress-attempted');
+const progressMarked = document.querySelector('.progress-marked');
+const progressUnattempted = document.querySelector('.progress-unattempted');
+
+function createQuestionButtons() {
+  questionPanel.innerHTML = '';
+  questions.forEach((q, i) => {
+    const btn = document.createElement('a');
+    btn.textContent = i + 1;
+    btn.href = 'javascript:void(0)';
+    btn.dataset.index = i;
+    btn.classList.add('unattempted');
+    btn.addEventListener('click', () => setCurrentQuestion(i));
+    questionPanel.appendChild(btn);
+  });
+}
+
+function updateQuestionButtons() {
+  questions.forEach((q, i) => {
+    const btn = questionPanel.children[i];
+    btn.classList.remove('unattempted', 'marked', 'current');
+    if (i === currentQuestionIndex) btn.classList.add('current');
+    else if (markedForReview.has(q.id)) btn.classList.add('marked');
+    else if (answers[q.id]) btn.classList.add('attempted');
+    else btn.classList.add('unattempted');
+  });
+}
+
+function createQuestions() {
+  quizForm.innerHTML = '';
+  questions.forEach((q, i) => {
+    const questionDiv = document.createElement('div');
+    questionDiv.classList.add('question');
+    questionDiv.id = q.id;
+    const questionText = document.createElement('p');
+    questionText.textContent = `Q${i + 1}. ${q.question}`;
+    questionDiv.appendChild(questionText);
+
+    q.choices.forEach(choice => {
+      const label = document.createElement('label');
+      label.classList.add('answer');
+      const input = document.createElement('input');
+      input.type = 'radio'; input.name = q.id; input.value = choice.value;
+      input.addEventListener('change', () => {
+        answers[q.id] = choice.value;
+        if (markedForReview.has(q.id)) markedForReview.delete(q.id);
+        updateProgressBar(); checkSubmitEnabled(); updateQuestionButtons();
+      });
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(choice.text));
+      questionDiv.appendChild(label);
+    });
+
+    const markBtn = document.createElement('button');
+    markBtn.type = 'button'; markBtn.textContent = 'Mark for Review';
+    markBtn.classList.add('mark-review-btn');
+    markBtn.addEventListener('click', () => {
+      if (markedForReview.has(q.id)) markedForReview.delete(q.id);
+      else markedForReview.add(q.id);
+      updateMarkButton(); updateQuestionButtons(); updateProgressBar();
+    });
+    questionDiv.appendChild(markBtn);
+
+    const navDiv = document.createElement('div'); navDiv.classList.add('nav-buttons');
+    const prevBtn = document.createElement('button'); prevBtn.textContent = 'Previous';
+    prevBtn.disabled = i === 0;
+    prevBtn.addEventListener('click', () => setCurrentQuestion(currentQuestionIndex - 1));
+    navDiv.appendChild(prevBtn);
+
+    const nextBtn = document.createElement('button'); nextBtn.textContent = 'Next';
+    nextBtn.disabled = i === questions.length - 1;
+    nextBtn.addEventListener('click', () => setCurrentQuestion(currentQuestionIndex + 1));
+    navDiv.appendChild(nextBtn);
+
+    questionDiv.appendChild(navDiv);
+    quizForm.appendChild(questionDiv);
+  });
+}
+
+function setCurrentQuestion(index) {
+  questions.forEach((q, i) => {
+    document.getElementById(q.id).classList.remove('active');
+  });
+  document.getElementById(questions[index].id).classList.add('active');
+  currentQuestionIndex = index; updateQuestionButtons(); updateMarkButton();
+}
+
+function updateMarkButton() {
+  const qId = questions[currentQuestionIndex].id;
+  const btn = document.getElementById(qId).querySelector('.mark-review-btn');
+  if (markedForReview.has(qId)) { btn.textContent = 'Unmark Review'; btn.classList.add('marked'); }
+  else { btn.textContent = 'Mark for Review'; btn.classList.remove('marked'); }
+}
+
+function checkSubmitEnabled() {
+  submitBtn.disabled = !questions.every(q => answers[q.id]);
+}
+
+function submitQuiz() {
+  clearInterval(timerInterval); submitBtn.disabled = true;
+  const total = questions.length; let correctCount = 0;
+  quizForm.querySelectorAll('input[type=radio]').forEach(i => i.disabled = true);
+  quizForm.querySelectorAll('button').forEach(b => b.disabled = true);
+
+  questions.forEach(q => {
+    const selected = answers[q.id];
+    document.getElementById(q.id).querySelectorAll('input[type=radio]').forEach(input => {
+      const label = input.parentElement; label.classList.remove('correct','wrong');
+      if (input.value === q.answer) label.classList.add('correct');
+      if (selected === input.value && selected !== q.answer) label.classList.add('wrong');
+    });
+    if (selected === q.answer) correctCount++;
+  });
+
+  resultDiv.textContent = `Your score: ${correctCount} / ${total}`;
+  showReview(correctCount, total);
+}
+
+function showReview(score, total) {
+  reviewContainer.style.display = 'block';
+  reviewContainer.innerHTML = `<h2>Quiz Review</h2><p>Your Score: ${score} / ${total}</p>`;
+  questions.forEach((q, i) => {
+    const div = document.createElement('div'); div.classList.add('review-question');
+    const qText = document.createElement('p'); qText.textContent = `Q${i+1}. ${q.question}`; div.appendChild(qText);
+
+    const yourAnswer = document.createElement('div');
+    yourAnswer.classList.add('review-answer','your-answer');
+    if (answers[q.id] === q.answer) { yourAnswer.classList.add('correct'); yourAnswer.textContent = `Your answer: ${getChoiceText(q, answers[q.id])} (Correct)`; }
+    else if (answers[q.id]) { yourAnswer.classList.add('wrong'); yourAnswer.textContent = `Your answer: ${getChoiceText(q, answers[q.id])} (Wrong)`; }
+    else { yourAnswer.textContent = `You did not answer this question.`; }
+    div.appendChild(yourAnswer);
+
+    const correctAnswer = document.createElement('div');
+    correctAnswer.classList.add('review-answer','correct-answer');
+    correctAnswer.textContent = `Correct answer: ${getChoiceText(q, q.answer)}`; div.appendChild(correctAnswer);
+
+    const explanation = document.createElement('p');
+    explanation.style.fontStyle = 'italic'; explanation.textContent = `Explanation: ${q.explanation}`;
+    div.appendChild(explanation);
+    reviewContainer.appendChild(div);
+  });
+}
+
+function getChoiceText(q, value) {
+  const c = q.choices.find(c => c.value === value); return c ? c.text : '';
+}
+
+function updateProgressBar() {
+  const total = questions.length;
+  const attempted = questions.filter(q => answers[q.id]).length;
+  const marked = markedForReview.size;
+  const widthAttempted = (attempted / total) * 100;
+  const widthMarked = (marked / total) * 100;
+  const widthUnattempted = 100 - widthAttempted - widthMarked;
+  progressAttempted.style.width = widthAttempted + '%';
+  progressMarked.style.width = widthMarked + '%';
+  progressUnattempted.style.width = widthUnattempted + '%';
+}
+
+function startTimer() {
+  let timeLeft = timerDuration;
+  timerDisplay.textContent = formatTime(timeLeft);
+  timerInterval = setInterval(() => {
+    timeLeft--; timerDisplay.textContent = formatTime(timeLeft);
+    if (timeLeft <= 0) { clearInterval(timerInterval); alert("Time is up! The quiz will be submitted automatically."); submitQuiz(); }
+  }, 1000);
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds/60), s = seconds%60;
+  return `Time Remaining: ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+function init() {
+  questions = questionsData;
+  createQuestionButtons(); createQuestions(); setCurrentQuestion(0);
+  updateProgressBar(); checkSubmitEnabled(); startTimer();
+}
+
+init();
+</script>
+</body>
+</html>

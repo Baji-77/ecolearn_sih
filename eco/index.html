@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoLearn</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <img src="images/ecologo.jpg" alt="EcoLearn Logo" class="nav-logo">
+    </div>
+    <div class="nav-right">
+      <a href="#">Home</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </div>
+  </nav>
+
+  <!-- Main Section (Text + Login Box Side by Side) -->
+  <div class="main-section">
+    <!-- Left Section with Welcome Text -->
+    <div class="content">
+      <h1>WELCOME TO ECOLEARN</h1>
+      <p class="p1">EcoLearn is your interactive learning companion for building environmental awareness.</p>
+      <p class="p2">Gamify your education journey, track progress, and grow your knowledge about nature.</p>
+    </div>
+
+    <!-- Right Section with Login Box -->
+    <div class="login-wrapper">
+      <div class="login-form">
+        <h2>Welcome</h2>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showForm('student')">Student</button>
+          <button class="tab-btn" onclick="showForm('admin')">Teacher</button>
+        </div>
+
+        <!-- Student Form -->
+        <form id="student-form"  onsubmit="return loginStudent(event)">
+          <div class="input-group">
+            <input type="text" id="studentName" placeholder="Student Name" required>
+          </div>
+          <div class="input-group">
+            <input type="number" id="studentRoll" placeholder="Roll Number" required>
+          </div>
+          <button type="submit">Login as Student</button>
+          <p id="studentMsg"></p>
+        </form>
+
+        <!-- Admin Form -->
+        <form id="admin-form" class="hidden" onsubmit="return loginAdmin(event)">
+          <div class="input-group">
+            <input type="email" id="adminName" placeholder="email@gmail.com" required>
+          </div>
+          <div class="input-group">
+            <input type="password" id="adminPass" placeholder="Password" required>
+          </div>
+          <button type="submit">Login as Teacher</button>
+          <div class="links">
+            <a href="#">Forgot Password?</a> | 
+            <a href="#">Register</a>
+          </div>
+          <p id="adminMsg"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+
+      <div class="footer-col-1">
+        <div class="footer-logo">EcoLearn</div>
+        <div class="social-icons">
+          <a href="#"><i class="icon-placeholder">X</i></a>
+          <a href="#"><i class="icon-placeholder">F</i></a>
+          <a href="#"><i class="icon-placeholder">I</i></a>
+        </div>
+        <button class="lang-selector">English</button>
+        <a href="#" class="net-zero-link">Net Zero Website</a>
+      </div>
+
+      <div class="footer-col-links">
+        <h3>Discover</h3>
+        <ul>
+          <li><a href="#">Projects</a></li>
+          <li><a href="#">Why Plant Trees</a></li>
+          <li><a href="#">Forum</a></li>
+          <li><a href="#">#Hashtags</a></li>
+          <li><a href="#">The Challenge</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col-links">
+        <h3>About</h3>
+        <ul>
+          <li><a href="#">About Us</a></li>
+          <li><a href="#">Our Blog</a></li>
+          <li><a href="#">Contact Us</a></li>
+          <li><a href="#">Work with us</a></li>
+          <li><a href="#">Learn More</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col-links">
+        <h3>Collaborate</h3>
+        <ul>
+          <li><a href="#">Plant</a></li>
+          <li><a href="#">Offset your CO2</a></li>
+          <li><a href="#">Involve your company</a></li>
+          <li><a href="#">Reforestation partners</a></li>
+        </ul>
+      </div>
+
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

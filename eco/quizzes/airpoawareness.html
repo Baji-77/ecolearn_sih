@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Air Pollution Awareness Quiz</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0; padding: 0;
+    background: #f4f7f8;
+  }
+  .container { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar {
+    width: 160px; background: #fff; border-right: 1px solid #ccc;
+    padding: 10px; box-sizing: border-box; overflow-y: auto;
+  }
+  .sidebar a {
+    display: block; margin: 6px 0; padding: 8px; text-align: center;
+    text-decoration: none; color: black; border-radius: 4px;
+    cursor: pointer; user-select: none; font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  .sidebar a.unattempted { background-color: #ff4d4d; color: white; }
+  .sidebar a.marked { background-color: #9933ff; color: white; }
+  .sidebar a.current { background-color: #3399ff; color: white; font-weight: bold; }
+  .main { flex: 1; padding: 20px; overflow-y: auto; background: white; }
+  .question { display: none; }
+  .question.active { display: block; }
+  .nav-buttons { margin-top: 15px; }
+  .nav-buttons button {
+    margin-right: 10px; padding: 8px 14px; font-size: 14px; cursor: pointer;
+  }
+  .nav-buttons button:disabled { cursor: not-allowed; opacity: 0.5; }
+  .mark-review-btn {
+    background-color: #9933ff; border: none; color: white; padding: 7px 15px;
+    border-radius: 4px; cursor: pointer; margin-top: 15px; transition: background-color 0.3s ease;
+  }
+  .mark-review-btn.marked { background-color: #6610f2; }
+  .submit-btn {
+    margin-top: 25px; padding: 12px 30px; font-size: 16px;
+    cursor: pointer; background-color: #28a745; color: white;
+    border: none; border-radius: 5px; transition: background-color 0.3s ease;
+  }
+  .submit-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+  .end-btn {
+    margin-top: 15px; padding: 10px 25px; font-size: 15px;
+    cursor: pointer; background-color: #dc3545; color: white;
+    border: none; border-radius: 5px; transition: background-color 0.3s ease;
+  }
+  .end-btn:hover { background-color: #c82333; }
+  .result { margin-top: 25px; font-size: 20px; font-weight: bold; }
+  .correct { background-color: #d4edda; }
+  .wrong { background-color: #f8d7da; }
+  label.answer { display: block; padding: 6px 10px; border-radius: 3px; margin-bottom: 5px; cursor: pointer; user-select: none; }
+  .progress-bar {
+    background: #eee; border-radius: 20px; overflow: hidden; height: 20px; margin-bottom: 15px; display: flex;
+  }
+  .progress-segment { height: 100%; transition: width 0.4s ease; }
+  .progress-attempted { background-color: #28a745; }
+  .progress-marked { background-color: #9933ff; }
+  .progress-unattempted { background-color: #ff4d4d; }
+  .review-container { margin-top: 30px; border-top: 2px solid #333; padding-top: 20px; }
+  .review-question { margin-bottom: 25px; }
+  .review-question p { font-weight: bold; }
+  .review-answer { margin-left: 10px; padding: 6px 12px; border-radius: 4px; display: inline-block; }
+  .your-answer.correct { background-color: #d4edda; color: #155724; }
+  .your-answer.wrong { background-color: #f8d7da; color: #721c24; }
+  .correct-answer { background-color: #cce5ff; color: #004085; margin-left: 10px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar" id="questionPanel"></div>
+  <div class="main">
+    <div id="timer" style="font-weight:bold; font-size:18px; margin-bottom:10px;">Time Remaining: 10:00</div>
+    
+    <div class="progress-bar" aria-label="Quiz Progress">
+      <div class="progress-segment progress-attempted" style="width:0%" title="Attempted"></div>
+      <div class="progress-segment progress-marked" style="width:0%" title="Marked for Review"></div>
+      <div class="progress-segment progress-unattempted" style="width:100%" title="Unattempted"></div>
+    </div>
+    
+    <form id="quizForm" onsubmit="return false;"></form>
+
+    <button type="button" class="submit-btn" id="submitBtn" onclick="submitQuiz()" disabled>Submit Quiz</button>
+    <button type="button" class="end-btn" id="endBtn" onclick="submitQuiz()">End Quiz</button>
+
+    <div class="result" id="result"></div>
+
+    <div class="review-container" id="reviewContainer" style="display:none;">
+      <h2>Quiz Review</h2>
+    </div>
+  </div>
+</div>
+
+<script>
+const questionsData = [
+  { id: 'q1', question: "What is a major cause of air pollution?", choices: [{value:'a', text:'Burning fossil fuels'}, {value:'b', text:'Planting trees'}, {value:'c', text:'Riding bicycles'}, {value:'d', text:'Using solar energy'}], answer:'a', explanation:"Burning fossil fuels releases harmful gases into the atmosphere." },
+  { id: 'q2', question: "Which of these is a simple way to reduce air pollution?", choices: [{value:'a', text:'Use public transport'}, {value:'b', text:'Burn trash'}, {value:'c', text:'Use more petrol'}, {value:'d', text:'Cut down trees'}], answer:'a', explanation:"Using public transport reduces the number of vehicles, lowering emissions." },
+  { id: 'q3', question: "Industrial emissions contribute to air pollution mainly through:", choices: [{value:'a', text:'Carbon dioxide and smoke'}, {value:'b', text:'Oxygen release'}, {value:'c', text:'Rainfall increase'}, {value:'d', text:'Wind production'}], answer:'a', explanation:"Factories release CO2, smoke, and other pollutants into the air." },
+  { id: 'q4', question: "Burning leaves and trash contributes to:", choices: [{value:'a', text:'Clean air'}, {value:'b', text:'Air pollution'}, {value:'c', text:'Water purification'}, {value:'d', text:'Soil enrichment'}], answer:'b', explanation:"Burning organic waste releases smoke and harmful gases." },
+  { id: 'q5', question: "Planting more trees helps air quality because:", choices: [{value:'a', text:'Trees produce smoke'}, {value:'b', text:'Trees absorb CO2'}, {value:'c', text:'Trees emit fossil fuels'}, {value:'d', text:'Trees pollute water'}], answer:'b', explanation:"Trees absorb carbon dioxide and release oxygen, improving air quality." },
+  { id: 'q6', question: "Vehicles contribute to air pollution mainly through:", choices: [{value:'a', text:'Tailpipe emissions'}, {value:'b', text:'Rainfall'}, {value:'c', text:'Solar energy'}, {value:'d', text:'Wind'}], answer:'a', explanation:"Cars, buses, and trucks emit pollutants like CO2 and NOx from tailpipes." },
+  { id: 'q7', question: "Reducing use of firecrackers can help because:", choices: [{value:'a', text:'They clean the air'}, {value:'b', text:'They produce smoke and pollutants'}, {value:'c', text:'They reduce noise'}, {value:'d', text:'They improve water quality'}], answer:'b', explanation:"Firecrackers release smoke and harmful gases into the air." },
+  { id: 'q8', question: "Which activity contributes least to air pollution?", choices: [{value:'a', text:'Walking or cycling'}, {value:'b', text:'Driving diesel vehicles'}, {value:'c', text:'Burning coal'}, {value:'d', text:'Industrial smoke'}], answer:'a', explanation:"Walking or cycling does not emit pollutants." },
+  { id: 'q9', question: "Air pollution can cause health problems like:", choices: [{value:'a', text:'Respiratory issues'}, {value:'b', text:'Better eyesight'}, {value:'c', text:'Increased energy'}, {value:'d', text:'Improved immunity'}], answer:'a', explanation:"Polluted air can lead to asthma, bronchitis, and other respiratory illnesses." },
+  { id: 'q10', question: "Which is an effective preventive step for air pollution?", choices: [{value:'a', text:'Use renewable energy sources'}, {value:'b', text:'Avoid open burning'}, {value:'c', text:'Use cleaner fuels'}, {value:'d', text:'All of the above'}], answer:'d', explanation:"All these steps help reduce air pollution effectively." }
+];
+
+let questions = [];
+let currentQuestionIndex = 0;
+let markedForReview = new Set();
+let answers = {};
+let timerDuration = 600;
+let timerInterval;
+
+const questionPanel = document.getElementById('questionPanel');
+const quizForm = document.getElementById('quizForm');
+const submitBtn = document.getElementById('submitBtn');
+const resultDiv = document.getElementById('result');
+const reviewContainer = document.getElementById('reviewContainer');
+const timerDisplay = document.getElementById('timer');
+const progressAttempted = document.querySelector('.progress-attempted');
+const progressMarked = document.querySelector('.progress-marked');
+const progressUnattempted = document.querySelector('.progress-unattempted');
+
+function createQuestionButtons() {
+  questionPanel.innerHTML = '';
+  questions.forEach((q, i) => {
+    const btn = document.createElement('a');
+    btn.textContent = i + 1;
+    btn.href = 'javascript:void(0)';
+    btn.dataset.index = i;
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-label', `Go to question ${i + 1}`);
+    btn.classList.add('unattempted');
+    btn.addEventListener('click', () => setCurrentQuestion(i));
+    questionPanel.appendChild(btn);
+  });
+}
+
+function updateQuestionButtons() {
+  questions.forEach((q, i) => {
+    const btn = questionPanel.children[i];
+    btn.classList.remove('unattempted','marked','current');
+    if(i===currentQuestionIndex) btn.classList.add('current');
+    else if(markedForReview.has(q.id)) btn.classList.add('marked');
+    else if(answers[q.id]) btn.classList.add('attempted');
+    else btn.classList.add('unattempted');
+  });
+}
+
+function createQuestions() {
+  quizForm.innerHTML='';
+  questions.forEach((q,i)=>{
+    const questionDiv=document.createElement('div');
+    questionDiv.classList.add('question');
+    questionDiv.id=q.id;
+
+    const questionText=document.createElement('p');
+    questionText.textContent=`Q${i+1}. ${q.question}`;
+    questionDiv.appendChild(questionText);
+
+    q.choices.forEach(choice=>{
+      const label=document.createElement('label');
+      label.classList.add('answer');
+      label.htmlFor=`${q.id}_${choice.value}`;
+
+      const input=document.createElement('input');
+      input.type='radio';
+      input.name=q.id;
+      input.id=`${q.id}_${choice.value}`;
+      input.value=choice.value;
+      input.addEventListener('change',()=>{
+        answers[q.id]=choice.value;
+        if(markedForReview.has(q.id)) markedForReview.delete(q.id);
+        updateProgressBar(); checkSubmitEnabled(); updateQuestionButtons();
+      });
+
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(choice.text));
+      questionDiv.appendChild(label);
+    });
+
+    const markBtn=document.createElement('button');
+    markBtn.type='button';
+    markBtn.textContent='Mark for Review';
+    markBtn.classList.add('mark-review-btn');
+    markBtn.addEventListener('click',()=>{
+      toggleMarkForReview(q.id);
+      updateQuestionButtons();
+      updateProgressBar();
+    });
+    questionDiv.appendChild(markBtn);
+
+    const navDiv=document.createElement('div'); navDiv.classList.add('nav-buttons');
+    const prevBtn=document.createElement('button'); prevBtn.type='button'; prevBtn.textContent='Previous'; prevBtn.disabled=i===0;
+    prevBtn.addEventListener('click',()=>{if(currentQuestionIndex>0) setCurrentQuestion(currentQuestionIndex-1);}); navDiv.appendChild(prevBtn);
+
+    const nextBtn=document.createElement('button'); nextBtn.type='button'; nextBtn.textContent='Next'; nextBtn.disabled=i===questions.length-1;
+    nextBtn.addEventListener('click',()=>{if(currentQuestionIndex<questions.length-1) setCurrentQuestion(currentQuestionIndex+1);}); navDiv.appendChild(nextBtn);
+
+    questionDiv.appendChild(navDiv);
+    quizForm.appendChild(questionDiv);
+  });
+}
+
+function setCurrentQuestion(index) {
+  questions.forEach((_,i)=>document.getElementById(questions[i].id).classList.remove('active'));
+  document.getElementById(questions[index].id).classList.add('active');
+  currentQuestionIndex=index; updateQuestionButtons();
+}
+
+function toggleMarkForReview(questionId) {
+  if(markedForReview.has(questionId)) markedForReview.delete(questionId);
+  else markedForReview.add(questionId);
+}
+
+function checkSubmitEnabled() {submitBtn.disabled=!questions.every(q=>answers[q.id]);}
+
+function submitQuiz() {
+  clearInterval(timerInterval);
+  submitBtn.disabled=true;
+  const total=questions.length;
+  let correctCount=0;
+  quizForm.querySelectorAll('input[type=radio]').forEach(i=>i.disabled=true);
+  quizForm.querySelectorAll('button').forEach(b=>b.disabled=true);
+  questions.forEach(q=>{
+    const selected=answers[q.id];
+    quizForm.querySelectorAll(`#${q.id} input`).forEach(input=>{
+      const label=input.parentElement; label.classList.remove('correct','wrong');
+      if(input.value===q.answer) label.classList.add('correct');
+      if(selected===input.value && selected!==q.answer) label.classList.add('wrong');
+    });
+    if(selected===q.answer) correctCount++;
+  });
+  resultDiv.textContent=`Your score: ${correctCount} / ${total}`;
+  showReview(correctCount,total);
+}
+
+function showReview(score,total){
+  reviewContainer.style.display='block';
+  reviewContainer.innerHTML=`<h2>Quiz Review</h2><p>Your Score: ${score} / ${total}</p>`;
+  questions.forEach((q,i)=>{
+    const div=document.createElement('div'); div.classList.add('review-question');
+    const qText=document.createElement('p'); qText.textContent=`Q${i+1}. ${q.question}`; div.appendChild(qText);
+    const yourAnswer=document.createElement('div'); yourAnswer.classList.add('review-answer','your-answer');
+    if(answers[q.id]===q.answer){yourAnswer.classList.add('correct'); yourAnswer.textContent=`Your answer: ${getChoiceText(q,answers[q.id])} (Correct)`;}
+    else if(answers[q.id]){yourAnswer.classList.add('wrong'); yourAnswer.textContent=`Your answer: ${getChoiceText(q,answers[q.id])} (Wrong)`;}
+    else{yourAnswer.textContent=`You did not answer this question.`;}
+    div.appendChild(yourAnswer);
+    const correctAnswer=document.createElement('div'); correctAnswer.classList.add('review-answer','correct-answer');
+    correctAnswer.textContent=`Correct answer: ${getChoiceText(q,q.answer)}`; div.appendChild(correctAnswer);
+    const explanation=document.createElement('p'); explanation.style.fontStyle='italic'; explanation.style.marginTop='6px';
+    explanation.textContent=`Explanation: ${q.explanation}`; div.appendChild(explanation);
+    reviewContainer.appendChild(div);
+  });
+}
+
+function getChoiceText(question,value){const choice=question.choices.find(c=>c.value===value); return choice?choice.text:'';}
+
+function updateProgressBar(){
+  const total=questions.length;
+  const attempted=questions.filter(q=>answers[q.id]).length;
+  const marked=markedForReview.size;
+  const widthAttempted=(attempted/total)*100;
+  const widthMarked=(marked/total)*100;
+  const widthUnattempted=100-widthAttempted-widthMarked;
+  progressAttempted.style.width=widthAttempted+'%';
+  progressMarked.style.width=widthMarked+'%';
+  progressUnattempted.style.width=widthUnattempted+'%';
+}
+
+function startTimer(){
+  let timeLeft=timerDuration;
+  timerDisplay.textContent=formatTime(timeLeft);
+  timerInterval=setInterval(()=>{
+    timeLeft--; timerDisplay.textContent=formatTime(timeLeft);
+    if(timeLeft<=0){clearInterval(timerInterval); alert("Time is up! The quiz will be submitted automatically."); submitQuiz();}
+  },1000);
+}
+
+function formatTime(seconds){
+  const mins=Math.floor(seconds/60);
+  const secs=seconds%60;
+  return `Time Remaining: ${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+}
+
+function init(){questions=questionsData; createQuestionButtons(); createQuestions(); setCurrentQuestion(0); updateProgressBar(); checkSubmitEnabled(); startTimer();}
+init();
+</script>
+
+</body>
+</html>
